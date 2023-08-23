@@ -1,10 +1,16 @@
 using Autofac;
+using Autofac.Core;
 using Autofac.Extensions.DependencyInjection;
 using Business.Abstract;
 using Business.Concrete;
 using Business.DependencyResolvers.Autofac;
+using Core.Utilities.IoC;
+using Core.Utilities.Security.Encryption;
+using Core.Utilities.Security.JWT;
 using DataAccess.Abstract;
 using DataAccess.Concrete.EntityFramework;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 namespace WebAPI
 {
@@ -40,7 +46,24 @@ namespace WebAPI
             });
             // autofac eklentisi kod blogu sonu
 
+            
+            var tokenOptions = builder.Configuration.GetSection("TokenOptions").Get<TokenOptions>();            
 
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidIssuer = tokenOptions.Issuer,
+                        ValidAudience = tokenOptions.Audience,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = SecurityKeyHelper.CreateSecurityKey(tokenOptions.SecurityKey)
+                    };
+                });
+            ServiceTool.Create(builder.Services);
 
 
             var app = builder.Build();
@@ -53,8 +76,10 @@ namespace WebAPI
             }
 
             app.UseHttpsRedirection();
-
-            app.UseAuthorization();
+            
+            //Middleware deniliyor. Asp.Net yaþam döngüsünde hangi yapýlarýn sýrasýyla devreye gireceðini buradan belirtiyoruz. Neye ihtiyaç varsa sýrasýyla belirtiyoruz.
+            app.UseAuthentication(); //eve girmek için anahtar
+            app.UseAuthorization(); //evin içinde neler yapabilir yetkisidir
 
 
             app.MapControllers();
