@@ -1,8 +1,9 @@
 ﻿using Business.Abstract;
 using Business.BusinessAspects.Autofac;
-using Business.CCS;
 using Business.Constants;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Caching;
+using Core.Aspects.Autofac.Performance;
 using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Business;
@@ -33,6 +34,9 @@ namespace Business.Concrete
 
         [SecuredOperation("product.add,admin")]
         [ValidationAspect(typeof(ProductValidator))]
+        [CacheRemoveAspect("IProductService.Get)")]
+        //[TransactionScopeAspect] //>> Hata yönetimi
+        //[PerformanceAspect(5)] //>> Bu metodun çalışması 5 sn geçerse beni uyar. Sadece bu metodu kontrol eder. Ama AspectInterceptorSelector içine yazılırsa tüm metodları kontrol eder.
         public IResult Add(Product product)
         {
 
@@ -44,13 +48,14 @@ namespace Business.Concrete
 
 
             _productDal.Add(product);
-            return new SuccessResult(Messages.ProductAdded);
-                                   
+            return new SuccessResult(Messages.ProductAdded);                                   
 
         }
 
+        [CacheAspect]
         public IDataResult<List<Product>> GetAll()
         {
+            //Thread.Sleep(5000); // >> belirtilen süre (5sn) boyunca işlemi duraklat.
             if (DateTime.Now.Hour == 22)
             {
                 return new ErrorDataResult<List<Product>>(Messages.MaintenanceTime);
@@ -64,6 +69,7 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Product>>(_productDal.GetAll(p => p.CategoryId == id));
         }
 
+        [CacheAspect]
         public IDataResult<Product> GetById(int productId)
         {
             return new SuccessDataResult<Product>(_productDal.Get(p => p.ProductId == productId));
@@ -80,6 +86,8 @@ namespace Business.Concrete
         }
 
         [ValidationAspect(typeof(ProductValidator))]
+        [CacheRemoveAspect("IProductService.Get)")] //>>Bellekte IProductService'deki bütün Get'leri sil demek
+        //[CacheRemoveAspect("Get)")] //>> Bellekte içerisinde Get olan tüm keyleri sil demek
         public IResult Update(Product product)
         {
             var result = _productDal.GetAll(p => p.CategoryId == product.CategoryId).Count;
