@@ -35,9 +35,9 @@ namespace Business.Concrete
         }
         
         
-        [SecuredOperation("product.add,admin")]
+        //[SecuredOperation("product.add,admin")]
         [ValidationAspect(typeof(ProductValidator))]
-        [CacheRemoveAspect("IProductService.Get)")]
+        [CacheRemoveAspect("IProductService.Get")]
         //[TransactionScopeAspect] //>> Hata yönetimi
         //[PerformanceAspect(5)] //>> Bu metodun çalışması 5 sn geçerse beni uyar. Sadece bu metodu kontrol eder. Ama AspectInterceptorSelector içine yazılırsa tüm metodları kontrol eder.
         public IResult Add(Product product)
@@ -61,7 +61,7 @@ namespace Business.Concrete
         public IDataResult<List<Product>> GetAll()
         {
             //Thread.Sleep(5000); // >> belirtilen süre (5sn) boyunca işlemi duraklat.
-            if (DateTime.Now.Hour == 22)
+            if (DateTime.Now.Hour == 20)
             {
                 return new ErrorDataResult<List<Product>>(Messages.MaintenanceTime);
             }
@@ -91,7 +91,7 @@ namespace Business.Concrete
         }
 
         [ValidationAspect(typeof(ProductValidator))]
-        [CacheRemoveAspect("IProductService.Get)")] //>>Bellekte IProductService'deki bütün Get'leri sil demek
+        [CacheRemoveAspect("IProductService.Get")] //>>Bellekte IProductService'deki bütün Get'leri sil demek
         //[CacheRemoveAspect("Get)")] //>> Bellekte içerisinde Get olan tüm keyleri sil demek
         public IResult Update(Product product)
         {

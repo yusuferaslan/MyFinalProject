@@ -28,7 +28,7 @@ namespace WebAPI
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-
+            builder.Services.AddCors();
             //Autofac, Ninject, CastleWindsor, StructureMap, LightInject, DryInject -- > IoC Container
 
             //Bana arka planda bir referans oluþtur. IoC bizim yerimize new liyor. Birisi senden Iproductservice isterse ona productmanager olustur onu ver demektir.
@@ -77,7 +77,9 @@ namespace WebAPI
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            app.ConfigureCustomExceptionMiddleware();
 
+            app.UseCors(builder=>builder.WithOrigins("http://localhost:4200").AllowAnyHeader());
             app.UseHttpsRedirection();
             
             //Middleware deniliyor. Asp.Net yaþam döngüsünde hangi yapýlarýn sýrasýyla devreye gireceðini buradan belirtiyoruz. Neye ihtiyaç varsa sýrasýyla belirtiyoruz.

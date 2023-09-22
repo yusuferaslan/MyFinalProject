@@ -45,25 +45,31 @@ namespace Core.CrossCuttingConcerns.Caching.Microsoft
             _memoryCache.Remove(key);
         }
 
-        public void RemoveByPattern(string pattern) //verdiğimiz bir patterne göre çalışma anında cacheden silme işlemini yapar. örnek>> [CacheRemoveAspect("IProductService.Get)")]
+        public void RemoveByPattern(string pattern) //verdiğimiz bir patterne göre çalışma anında cacheden silme işlemini yapar. örnek>> [CacheRemoveAspect("ICarService.Get)")]
         {
-            var cacheEntriesCollectionDefinition = typeof(MemoryCache).GetProperty("EntriesCollection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance); //Bellekte MemoryCache türünde olan entriescollection(microsoftun bellekte tutma şekli ve yeri) datalarını bul
-            var cacheEntriesCollection = cacheEntriesCollectionDefinition.GetValue(_memoryCache) as dynamic; // definitionu memory cache olanları bul
+
+            dynamic cacheEntriesCollection = null;
+            var cacheEntriesFieldCollectionDefinition = typeof(MemoryCache).GetField("_coherentState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (cacheEntriesFieldCollectionDefinition != null)
+            {
+                var coherentStateValueCollection = cacheEntriesFieldCollectionDefinition.GetValue(_memoryCache);
+                var entriesCollectionValueCollection = coherentStateValueCollection.GetType().GetProperty("EntriesCollection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                cacheEntriesCollection = entriesCollectionValueCollection.GetValue(coherentStateValueCollection);
+            }
+
             List<ICacheEntry> cacheCollectionValues = new List<ICacheEntry>();
 
-            foreach (var cacheItem in cacheEntriesCollection) //sonra her bir cache elemanını gez
+
+            var regex = new Regex(pattern, RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            var keysToRemove = cacheCollectionValues.Where(d => regex.IsMatch(d.Key.ToString())).Select(d => d.Key).ToList();
+
+            foreach (var key in keysToRemove)
             {
-                ICacheEntry cacheItemValue = cacheItem.GetType().GetProperty("Value").GetValue(cacheItem, null);
-                cacheCollectionValues.Add(cacheItemValue);
+                _memoryCache.Remove(key);
             }
 
-            var regex = new Regex(pattern, RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase); // patterni bu sekilde olusturuyoruz. singleline olacak, compiled olacak, case sensitive olmayacak gibi
-            var keysToRemove = cacheCollectionValues.Where(d => regex.IsMatch(d.Key.ToString())).Select(d => d.Key).ToList(); //>> yukarda gelen her bir cache datası içinde bu kurala uyanları keysToRemove de topla
 
-            foreach (var key in keysToRemove) // uyanların keylerini tek tek bul
-            {
-                _memoryCache.Remove(key);  //onlarıda bellekten sil
-            }
         }
     }
 }
